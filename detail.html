@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>ReleaseRadar — Title Detail</title>
+<title>ReleaseRadar — Track every release, the moment it matters</title>
+<meta name="description" content="ReleaseRadar tracks upcoming and recently released games, movies, TV series, and animation with live countdowns." />
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><circle cx=%2212%22 cy=%2212%22 r=%2210%22 fill=%22%2305060b%22/><circle cx=%2212%22 cy=%2212%22 r=%227%22 fill=%22none%22 stroke=%22%232dd9f0%22 stroke-width=%221.4%22/><circle cx=%2212%22 cy=%2212%22 r=%222%22 fill=%22%238b6bff%22/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,7 +14,7 @@
 <body>
 
 <div class="ambient" aria-hidden="true">
-  <canvas id="ambientCanvas2"></canvas>
+  <canvas id="ambientCanvas"></canvas>
   <div class="blob blob--1"></div>
   <div class="blob blob--2"></div>
   <div class="blob blob--3"></div>
@@ -28,102 +29,112 @@
           <circle cx="15" cy="15" r="13.5" stroke="rgba(255,255,255,0.14)"/>
           <circle cx="15" cy="15" r="9" stroke="rgba(255,255,255,0.18)"/>
           <circle cx="15" cy="15" r="4.5" stroke="rgba(255,255,255,0.22)"/>
-          <g class="brand__pulse-dot"><circle cx="15" cy="4" r="1.8" fill="#2dd9f0"/></g>
+          <g class="brand__pulse-dot">
+            <circle cx="15" cy="4" r="1.8" fill="#2dd9f0"/>
+          </g>
           <circle cx="15" cy="15" r="2" fill="#8b6bff"/>
         </svg>
       </span>
       <span>Release<span class="brand__word-radar">Radar</span></span>
     </a>
     <nav class="main-nav">
-      <a href="index.html">Home</a>
+      <a href="#sec-today">Today</a>
+      <a href="#sec-week">This Week</a>
+      <a href="#sec-anticipated">Most Anticipated</a>
+      <a href="#sec-soon">Coming Soon</a>
+      <a href="#sec-recent">Recently Released</a>
     </nav>
     <label class="header-search">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="white" stroke-width="1.6"/><path d="M21 21l-4.3-4.3" stroke="white" stroke-width="1.6" stroke-linecap="round"/></svg>
-      <input type="text" placeholder="Search ReleaseRadar…" onfocus="location.href='index.html'" readonly />
+      <input id="headerSearch" type="text" placeholder="Search titles, genres, studios…" autocomplete="off" />
     </label>
   </div>
 </header>
 
-<div id="detailRoot">
-  <div class="detail-backdrop" id="backdrop">
-    <div class="detail-backdrop__art"></div>
-    <div class="detail-backdrop__scrim"></div>
-  </div>
+<main class="page">
 
-  <div class="page">
-    <a href="index.html" class="back-link">&larr; Back to ReleaseRadar</a>
-
-    <div class="detail-main">
-      <div>
-        <div class="detail-poster" id="posterArt"></div>
+  <!-- HERO -->
+  <section class="hero">
+    <div>
+      <div class="hero__eyebrow"><span class="dot"></span>Live tracking · updated every second</div>
+      <h1>Never miss a <span class="grad">release</span> again.</h1>
+      <p>Games, movies, TV, and animation — one radar for everything you're waiting on, with live countdowns down to the second.</p>
+      <div class="hero__actions">
+        <a href="#sec-today" class="btn btn--primary">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M13 3 4 14h6l-1 7 9-11h-6l1-7Z" stroke="white" stroke-width="1.6" stroke-linejoin="round"/></svg>
+          Jump to today
+        </a>
+        <label class="btn" for="heroSearch" style="cursor:text;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.6"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <input id="heroSearch" type="text" placeholder="Search…" autocomplete="off"
+            style="background:transparent;border:none;outline:none;color:inherit;font:inherit;width:110px;" />
+        </label>
       </div>
-
-      <div>
-        <div class="detail-head__category" id="categoryBadge"></div>
-        <h1 class="detail-title" id="detailTitle">Loading…</h1>
-        <p class="detail-tagline" id="detailTagline"></p>
-
-        <div class="detail-meta-row">
-          <div class="meta-item"><div class="lbl">Release Date</div><div class="val" id="dateVal">—</div></div>
-          <div class="meta-item"><div class="lbl">Studio</div><div class="val" id="studioVal">—</div></div>
-          <div class="meta-item"><div class="lbl">Genre</div><div class="val" id="genresVal">—</div></div>
-          <div class="meta-item" id="ratingItem"><div class="lbl">Rating</div><div class="val" id="ratingVal">—</div></div>
-        </div>
-
-        <div class="countdown-panel" id="countdownPanel">
-          <div>
-            <div class="countdown-panel__label" id="countdownLabel">Countdown to release</div>
-          </div>
-          <div class="countdown-panel__units" id="countdownUnits"></div>
-        </div>
-
-        <div class="detail-section">
-          <h3>Overview</h3>
-          <p id="synopsisText"></p>
-        </div>
-
-        <div class="detail-section">
-          <h3>Genres</h3>
-          <div class="genre-pills" id="genrePills"></div>
-        </div>
-
-        <div class="detail-section" id="platformSection">
-          <h3>Platforms</h3>
-          <div class="platform-list" id="platformList"></div>
-        </div>
-
-        <div class="detail-section">
-          <h3>Trailer</h3>
-          <div class="trailer-frame" id="trailerFrame">
-            <div class="trailer-frame__art"></div>
-            <div class="trailer-frame__scrim"></div>
-            <div class="trailer-viz" id="trailerViz"></div>
-            <div class="trailer-frame__play">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M8 5v14l11-7L8 5Z" fill="white"/></svg>
-            </div>
-            <div class="trailer-frame__label" id="trailerLabel">Watch Trailer</div>
-          </div>
-        </div>
-
-        <div class="detail-section" id="relatedSection">
-          <h3>You may also track</h3>
-          <div class="related-grid" id="relatedGrid"></div>
-        </div>
+      <div class="hero__stats">
+        <div class="hero__stat"><div class="num mono" id="statTotal">—</div><div class="lbl">Tracked upcoming</div></div>
+        <div class="hero__stat"><div class="num mono" id="statToday">—</div><div class="lbl">Releasing today</div></div>
+        <div class="hero__stat"><div class="num mono" id="statWeek">—</div><div class="lbl">This week</div></div>
       </div>
     </div>
+
+    <div>
+      <div class="radar-wrap">
+        <div class="radar" id="radar">
+          <div class="radar__sweep"></div>
+          <div class="radar__ring radar__ring--1"></div>
+          <div class="radar__ring radar__ring--2"></div>
+          <div class="radar__ring radar__ring--3"></div>
+          <div class="radar__ring radar__ring--4"></div>
+          <div class="radar__crosshair"></div>
+          <div class="radar__center"></div>
+          <!-- blips injected by app.js -->
+        </div>
+      </div>
+      <div class="radar__caption">Nearest to center = releasing soonest</div>
+    </div>
+  </section>
+
+  <!-- CONTROLS -->
+  <div class="controls">
+    <div class="controls__filters">
+      <button class="chip active" data-filter="all">All</button>
+      <button class="chip" data-filter="game">Games</button>
+      <button class="chip" data-filter="movie">Movies</button>
+      <button class="chip" data-filter="tv">TV Series</button>
+      <button class="chip" data-filter="animation">Animation</button>
+    </div>
+    <div class="controls__sort">
+      Sort by
+      <select id="sortSelect">
+        <option value="soonest">Release date — soonest</option>
+        <option value="latest">Release date — latest</option>
+        <option value="anticipated">Most anticipated</option>
+        <option value="az">Title A–Z</option>
+      </select>
+    </div>
   </div>
-</div>
+
+  <!-- FILTERED / SEARCH RESULTS VIEW -->
+  <div id="filteredView" style="display:none;">
+    <p class="search-meta" id="searchMeta"></p>
+    <div class="grid" id="filteredGrid"></div>
+  </div>
+
+  <!-- CURATED SECTIONS -->
+  <div id="sections"></div>
+
+</main>
 
 <footer class="site-footer">
   <div class="page" style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px;width:100%;">
     <span>ReleaseRadar — a concept entertainment tracker. Sample data for demonstration.</span>
-    <a href="index.html">&larr; Back to all releases</a>
+    <span>Built with a dark radar. No signal missed.</span>
   </div>
 </footer>
 
 <script src="js/countdown.js"></script>
 <script src="js/art.js"></script>
 <script src="js/data.js"></script>
-<script src="js/detail.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>
