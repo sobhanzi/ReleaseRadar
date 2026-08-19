@@ -1,8 +1,16 @@
 /**
- * ReleaseRadar — Procedural poster/backdrop art
- * No external image dependency: every item gets a deterministic
- * gradient + icon treatment derived from its category and id,
- * so the UI stays fast, offline-friendly, and consistent.
+ * ReleaseRadar — Poster/backdrop art
+ * Real photographic artwork is loaded from Lorem Picsum
+ * (https://picsum.photos) using a deterministic "seed" built from
+ * each item's id, so the same title always gets the same image,
+ * no API key or manual URL list required, and it works fine as a
+ * plain <img src="..."> on a static host like GitHub Pages.
+ *
+ * The original gradient + icon treatment is kept as the *fallback*
+ * layer: it always renders underneath the photo, and stays visible
+ * automatically if the photo request fails (onerror hides the
+ * broken <img>, revealing the gradient/icon behind it) or before
+ * the photo has finished loading.
  */
 const RRArt = (() => {
   const ICONS = {
@@ -52,15 +60,43 @@ const RRArt = (() => {
     return CATEGORY_LABEL[category] || category;
   }
 
-  /** Poster art element (2:3) used in cards & detail sidebar */
-  function posterArt(item) {
+  /* ---------------- Real image sourcing (Lorem Picsum) ---------------- */
+
+  // Lorem Picsum: no API key, HTTPS, CDN-backed, deterministic via /seed/.
+  // Docs: https://picsum.photos/
+  function posterImageUrl(item, w = 500, h = 750) {
+    return `https://picsum.photos/seed/${encodeURIComponent(item.id)}/${w}/${h}`;
+  }
+
+  function backdropImageUrl(item, w = 1600, h = 900) {
+    return `https://picsum.photos/seed/${encodeURIComponent(item.id + "-backdrop")}/${w}/${h}`;
+  }
+
+  /** Poster art element (2:3) used in cards & detail sidebar.
+   *  Layer order (back to front): gradient fallback, icon fallback,
+   *  real photo, category color wash, caller's own scrim on top. */
+  function posterArt(item, size) {
+    const { w, h } = size || { w: 500, h: 750 };
+    const url = posterImageUrl(item, w, h);
     return `
       <div class="card__poster-art" style="background:${gradientFor(item)}"></div>
       <div class="card__poster-icon">${icon(item.category)}</div>
+      <img
+        class="card__poster-img"
+        src="${url}"
+        alt="${escapeAttr(item.title)} poster"
+        loading="lazy"
+        decoding="async"
+        onload="this.classList.add('is-loaded')"
+        onerror="this.onerror=null;this.remove();"
+      />
+      <div class="card__poster-tint"></div>
     `;
   }
 
-  /** Wide backdrop treatment for detail header / trailer frame */
+  /** Wide backdrop treatment for detail header / trailer frame.
+   *  Returns the gradient CSS (used as the fallback `background`
+   *  on the container) — call backdropArt() for the photo layer. */
   function backdropStyle(item) {
     const seed = hashStr(item.id + "-bd");
     const [h1base] = HUES[item.category] || [252, 268];
@@ -71,5 +107,30 @@ const RRArt = (() => {
       linear-gradient(160deg, hsl(${h1} 55% 14%), #05060b 78%);`;
   }
 
-  return { gradientFor, icon, categoryLabel, backdropStyle, hashStr, posterArt };
+  /** Real photo layer for the detail backdrop / trailer frame.
+   *  Injected into a container that already has backdropStyle()
+   *  applied as its inline background, so a failed/slow photo load
+   *  still shows the gradient underneath. */
+  function backdropArt(item, size) {
+    const { w, h } = size || { w: 1600, h: 900 };
+    const url = backdropImageUrl(item, w, h);
+    return `
+      <img
+        class="backdrop-img"
+        src="${url}"
+        alt=""
+        loading="lazy"
+        decoding="async"
+        onload="this.classList.add('is-loaded')"
+        onerror="this.onerror=null;this.remove();"
+      />
+      <div class="backdrop-tint"></div>
+    `;
+  }
+
+  function escapeAttr(str) {
+    return String(str).replace(/"/g, "&quot;");
+  }
+
+  return { gradientFor, icon, categoryLabel, backdropStyle, backdropArt, hashStr, posterArt, posterImageUrl, backdropImageUrl };
 })();

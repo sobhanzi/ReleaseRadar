@@ -47,6 +47,7 @@
 
   function render(item) {
     document.getElementById("backdrop").style.cssText += RRArt.backdropStyle(item);
+    document.querySelector("#backdrop .detail-backdrop__art").innerHTML = RRArt.backdropArt(item);
     document.getElementById("posterArt").innerHTML = RRArt.posterArt(item);
 
     document.getElementById("categoryBadge").innerHTML = `
@@ -55,7 +56,7 @@
     document.getElementById("detailTitle").textContent = item.title;
     document.getElementById("detailTagline").textContent = item.description;
     document.getElementById("studioVal").textContent = item.studio;
-    document.getElementById("dateVal").textContent = RRTime.formatDate(item.releaseDate);
+    document.getElementById("dateVal").textContent = RRTime.formatDate(item.releaseDate, item.datePrecision);
     document.getElementById("genresVal").textContent = item.genres.join(", ");
 
     const ratingItem = document.getElementById("ratingItem");
@@ -82,6 +83,7 @@
     }
 
     document.getElementById("trailerFrame").style.cssText += RRArt.backdropStyle(item);
+    document.querySelector("#trailerFrame .trailer-frame__art").innerHTML = RRArt.backdropArt(item);
   }
 
   function platformIcon() {
@@ -90,11 +92,25 @@
 
   function startCountdown(item) {
     const panel = document.getElementById("countdownPanel");
+    const label = document.getElementById("countdownLabel");
+
+    // Month/year/TBA titles don't have a real day to count down to —
+    // showing a ticking day/hour/minute/second timer for them would be
+    // fabricating precision we don't actually have. Show the known
+    // release window instead, once, with no per-second ticking.
+    if (item.datePrecision !== "day") {
+      panel.classList.remove("released");
+      label.textContent = item.datePrecision === "tba" ? "Release window" : "Estimated release window";
+      document.getElementById("countdownUnits").innerHTML = `
+        <div class="cu"><div class="n mono" style="font-size:20px;">${RRTime.formatDate(item.releaseDate, item.datePrecision)}</div><div class="u">${item.datePrecision === "tba" ? "not yet announced" : "exact date tbc"}</div></div>
+      `;
+      return;
+    }
+
     function tick() {
       const now = new Date();
       const target = new Date(item.releaseDate);
-      const st = RRTime.status(item.releaseDate, now);
-      const label = document.getElementById("countdownLabel");
+      const st = RRTime.status(item.releaseDate, item.datePrecision, now);
 
       if (st === "today") {
         panel.classList.add("released");
@@ -161,8 +177,8 @@
     const a = document.createElement("a");
     a.href = `detail.html?id=${encodeURIComponent(item.id)}`;
     a.className = `card card--${item.category}`;
-    const badgeLabel = RRTime.badgeLabel(item.releaseDate);
-    const st = RRTime.status(item.releaseDate);
+    const badgeLabel = RRTime.badgeLabel(item.releaseDate, item.datePrecision);
+    const st = RRTime.status(item.releaseDate, item.datePrecision);
     a.innerHTML = `
       <div class="card__poster">
         ${RRArt.posterArt(item)}
@@ -173,7 +189,7 @@
       </div>
       <div class="card__body">
         <div class="card__genres">${item.genres.slice(0, 2).join(" / ")}</div>
-        <div class="card__date-row"><span class="card__date">${RRTime.formatDateShort(item.releaseDate)}</span></div>
+        <div class="card__date-row"><span class="card__date">${RRTime.formatDateShort(item.releaseDate, item.datePrecision)}</span></div>
       </div>
     `;
     return a;

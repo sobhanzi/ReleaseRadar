@@ -96,13 +96,22 @@
   }
 
   function sortItems(list) {
-    const now = Date.now();
     const copy = [...list];
     switch (state.sort) {
       case "soonest":
-        return copy.sort((a, b) => new Date(a.releaseDate) - new Date(b.releaseDate));
+        return copy.sort((a, b) => RRTime.sortValue(a.releaseDate) - RRTime.sortValue(b.releaseDate));
       case "latest":
-        return copy.sort((a, b) => new Date(b.releaseDate) - new Date(a.releaseDate));
+        return copy.sort((a, b) => {
+          // TBA (Infinity) titles have no confirmed date, so they don't
+          // belong at the "latest" end either — push them to the back
+          // for both sort directions instead of pretending they're furthest out.
+          const av = RRTime.sortValue(a.releaseDate);
+          const bv = RRTime.sortValue(b.releaseDate);
+          if (av === Infinity && bv === Infinity) return 0;
+          if (av === Infinity) return 1;
+          if (bv === Infinity) return -1;
+          return bv - av;
+        });
       case "anticipated":
         return copy.sort((a, b) => b.hype - a.hype);
       case "az":
@@ -140,23 +149,29 @@
     const now = new Date();
     const items = state.items;
 
-    const today = items.filter((i) => RRTime.status(i.releaseDate, now) === "today");
+    const today = items.filter((i) => RRTime.status(i.releaseDate, i.datePrecision, now) === "today");
     const thisWeek = items.filter((i) => {
+      if (i.datePrecision !== "day") return false;
       const d = RRTime.diffParts(new Date(i.releaseDate), now);
-      return d.isFuture && d.days <= 7 && RRTime.status(i.releaseDate, now) !== "today";
+      return d.isFuture && d.days <= 7 && RRTime.status(i.releaseDate, i.datePrecision, now) !== "today";
     });
     const thisMonth = items.filter((i) => {
+      if (i.datePrecision !== "day") return false;
       const d = RRTime.diffParts(new Date(i.releaseDate), now);
       return d.isFuture && d.days > 7 && d.days <= 30;
     });
     const comingSoon = items
-      .filter((i) => RRTime.diffParts(new Date(i.releaseDate), now).isFuture)
-      .sort((a, b) => new Date(a.releaseDate) - new Date(b.releaseDate));
+      .filter((i) => {
+        const target = i.releaseDate ? new Date(i.releaseDate) : null;
+        return RRTime.diffParts(target, now).isFuture;
+      })
+      .sort((a, b) => RRTime.sortValue(a.releaseDate) - RRTime.sortValue(b.releaseDate));
     const mostAnticipated = items
       .filter((i) => i.anticipated)
       .sort((a, b) => b.hype - a.hype);
     const recentlyReleased = items
       .filter((i) => {
+        if (i.datePrecision !== "day") return false;
         const d = RRTime.diffParts(new Date(i.releaseDate), now);
         return !d.isFuture && d.days <= 45;
       })
@@ -238,8 +253,8 @@
     a.dataset.id = item.id;
 
     const now = new Date();
-    const st = RRTime.status(item.releaseDate, now);
-    const badgeLabel = RRTime.badgeLabel(item.releaseDate, now);
+    const st = RRTime.status(item.releaseDate, item.datePrecision, now);
+    const badgeLabel = RRTime.badgeLabel(item.releaseDate, item.datePrecision, now);
 
     const platformsHtml = item.platforms
       ? `<div class="card__platforms">${item.platforms
@@ -261,7 +276,7 @@
       <div class="card__body">
         <div class="card__genres">${item.genres.slice(0, 2).join(" / ")}</div>
         <div class="card__date-row">
-          <span class="card__date">${RRTime.formatDateShort(item.releaseDate)}</span>
+          <span class="card__date">${RRTime.formatDateShort(item.releaseDate, item.datePrecision)}</span>
         </div>
         ${platformsHtml}
       </div>
@@ -273,9 +288,9 @@
     document.querySelectorAll("[data-badge]").forEach((el) => {
       const item = state.items.find((i) => i.id === el.dataset.id);
       if (!item) return;
-      const st = RRTime.status(item.releaseDate);
+      const st = RRTime.status(item.releaseDate, item.datePrecision);
       el.classList.toggle("is-today", st === "today");
-      el.innerHTML = `<span class="b-dot"></span>${RRTime.badgeLabel(item.releaseDate)}`;
+      el.innerHTML = `<span class="b-dot"></span>${RRTime.badgeLabel(item.releaseDate, item.datePrecision)}`;
     });
   }
 
@@ -283,9 +298,13 @@
 
   function renderStats() {
     const now = new Date();
-    const upcoming = state.items.filter((i) => RRTime.diffParts(new Date(i.releaseDate), now).isFuture);
-    const today = state.items.filter((i) => RRTime.status(i.releaseDate, now) === "today");
+    const upcoming = state.items.filter((i) => {
+      const target = i.releaseDate ? new Date(i.releaseDate) : null;
+      return RRTime.diffParts(target, now).isFuture;
+    });
+    const today = state.items.filter((i) => RRTime.status(i.releaseDate, i.datePrecision, now) === "today");
     const week = state.items.filter((i) => {
+      if (i.datePrecision !== "day") return false;
       const d = RRTime.diffParts(new Date(i.releaseDate), now);
       return d.isFuture && d.days <= 7;
     });
@@ -299,8 +318,11 @@
   function renderRadar() {
     if (!els.radar) return;
     const now = new Date();
+    // Only exact-day items get plotted — proximity-to-center only means
+    // something when we actually know how many days out a title is.
     const upcoming = state.items
       .filter((i) => {
+        if (i.datePrecision !== "day") return false;
         const d = RRTime.diffParts(new Date(i.releaseDate), now);
         return d.isFuture && d.days <= 75;
       })
@@ -336,7 +358,7 @@
         <span class="core"></span>
         <span class="radar__tooltip">
           <span class="t-title">${item.title}</span><br/>
-          <span class="t-meta">${RRTime.badgeLabel(item.releaseDate, now)} · ${RRArt.categoryLabel(item.category)}</span>
+          <span class="t-meta">${RRTime.badgeLabel(item.releaseDate, item.datePrecision, now)} · ${RRArt.categoryLabel(item.category)}</span>
         </span>
       `;
       els.radar.appendChild(blip);

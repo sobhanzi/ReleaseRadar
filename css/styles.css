@@ -670,6 +670,28 @@ h1, h2, h3, h4, p { margin: 0; }
 }
 .card__poster-icon svg { width: 46%; height: 46%; }
 
+.card__poster-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  filter: saturate(0.82) contrast(1.05) brightness(0.82);
+  transition: transform .5s var(--ease-out), opacity .45s var(--ease-out);
+}
+.card__poster-img.is-loaded { opacity: 1; }
+.card:hover .card__poster-img { transform: scale(1.06); }
+
+.card__poster-tint {
+  position: absolute;
+  inset: 0;
+  background: var(--accent, var(--signal-violet));
+  opacity: 0.14;
+  mix-blend-mode: color;
+  pointer-events: none;
+}
+
 .card__scrim {
   position: absolute;
   inset: 0;
@@ -821,6 +843,22 @@ h1, h2, h3, h4, p { margin: 0; }
 }
 .detail-backdrop__art {
   position: absolute; inset: 0;
+}
+.backdrop-img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  filter: saturate(0.8) contrast(1.05) brightness(0.78);
+  transition: opacity .6s var(--ease-out);
+}
+.backdrop-img.is-loaded { opacity: 1; }
+.backdrop-tint {
+  position: absolute; inset: 0;
+  background: var(--accent, var(--signal-violet));
+  opacity: 0.12;
+  mix-blend-mode: color;
+  pointer-events: none;
 }
 .detail-backdrop__scrim {
   position: absolute; inset: 0;
